@@ -1,13 +1,17 @@
 package com.nudriin.restaurantreview.ui
 
+import android.content.Context
+import android.inputmethodservice.InputMethodService
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.nudriin.restaurantreview.data.response.CustomerReviewsItem
+import com.nudriin.restaurantreview.data.response.PostReviewResponse
 import com.nudriin.restaurantreview.data.response.Restaurant
 import com.nudriin.restaurantreview.data.response.RestaurantResponse
 import com.nudriin.restaurantreview.data.retrofit.ApiConfig
@@ -38,6 +42,12 @@ class MainActivity : AppCompatActivity() {
         binding.rvReview.addItemDecoration(itemDecoration)
 
         getRetaurant()
+
+        binding.btnSend.setOnClickListener { view ->
+            saveReview(binding.edReview.text.toString()) // get text from input view
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+        }
     }
 
     private fun showLoading(isLoading: Boolean) {
@@ -68,6 +78,31 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onFailure(call: Call<RestaurantResponse>, t: Throwable) {
+                showLoading(false)
+                Log.e(TAG, "onFailure: ${t.message}")
+            }
+        })
+    }
+
+    private fun saveReview(review: String) {
+        showLoading(true)
+
+        val client = ApiConfig.getApiService().saveReview(RESTAURANT_ID, "Elon Zuckerburg", review)
+        client.enqueue(object: Callback<PostReviewResponse> {
+            override fun onResponse(
+                call: Call<PostReviewResponse>,
+                response: Response<PostReviewResponse>
+            ) {
+                showLoading(false)
+                val body = response.body()
+                if(response.isSuccessful && body != null) {
+                    setReviewData(body.customerReviews)
+                } else {
+                    Log.e(TAG, "onFailure: ${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<PostReviewResponse>, t: Throwable) {
                 showLoading(false)
                 Log.e(TAG, "onFailure: ${t.message}")
             }
