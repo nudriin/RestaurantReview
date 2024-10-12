@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
@@ -22,6 +23,7 @@ import retrofit2.Response
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private lateinit var viewModel: MainViewModel
 
     companion object {
         private const val TAG = "MainActivity"
@@ -41,10 +43,23 @@ class MainActivity : AppCompatActivity() {
         val itemDecoration = DividerItemDecoration(this, layoutManager.orientation)
         binding.rvReview.addItemDecoration(itemDecoration)
 
-        getRetaurant()
+        // create view model
+        viewModel = ViewModelProvider(this)[MainViewModel::class.java]
+        // observe restaurant live data data
+        viewModel.restaurant.observe(this) {
+            setRestaurantData(it)
+        }
+
+        viewModel.listReview.observe(this){
+            setReviewData(it)
+        }
+
+        viewModel.isLoading.observe(this) {
+            showLoading(it)
+        }
 
         binding.btnSend.setOnClickListener { view ->
-            saveReview(binding.edReview.text.toString()) // get text from input view
+            viewModel.saveReview(binding.edReview.text.toString())
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(view.windowToken, 0)
         }
@@ -58,56 +73,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getRetaurant() {
-        showLoading(true) // set loading
-
-        val client = ApiConfig.getApiService().getRestaurant(RESTAURANT_ID) // create client for get restaurant api
-        client.enqueue(object : Callback<RestaurantResponse> {
-            override fun onResponse(
-                call: Call<RestaurantResponse>,
-                response: Response<RestaurantResponse>
-            ) {
-                showLoading(false)
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    if(body != null) {
-                        setRestaurantData(body.restaurant)
-                        setReviewData(body.restaurant.customerReviews)
-                    }
-                }
-            }
-
-            override fun onFailure(call: Call<RestaurantResponse>, t: Throwable) {
-                showLoading(false)
-                Log.e(TAG, "onFailure: ${t.message}")
-            }
-        })
-    }
-
-    private fun saveReview(review: String) {
-        showLoading(true)
-
-        val client = ApiConfig.getApiService().saveReview(RESTAURANT_ID, "Elon Zuckerburg", review)
-        client.enqueue(object: Callback<PostReviewResponse> {
-            override fun onResponse(
-                call: Call<PostReviewResponse>,
-                response: Response<PostReviewResponse>
-            ) {
-                showLoading(false)
-                val body = response.body()
-                if(response.isSuccessful && body != null) {
-                    setReviewData(body.customerReviews)
-                } else {
-                    Log.e(TAG, "onFailure: ${response.message()}")
-                }
-            }
-
-            override fun onFailure(call: Call<PostReviewResponse>, t: Throwable) {
-                showLoading(false)
-                Log.e(TAG, "onFailure: ${t.message}")
-            }
-        })
-    }
 
     private fun setReviewData(customerReviews: List<CustomerReviewsItem>) {
         val adapter = ReviewListAdapter() // create adapter
