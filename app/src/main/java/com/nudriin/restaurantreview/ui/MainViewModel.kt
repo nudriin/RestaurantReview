@@ -26,6 +26,9 @@ class MainViewModel : ViewModel() {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
+    private val _snackBarText = MutableLiveData<String>()
+    val snackBarText: LiveData<String> = _snackBarText
+
     companion object {
         private const val TAG = "MainViewModel"
         private const val RESTAURANT_ID = "uewq1zg2zlskfw1e867"
@@ -79,6 +82,7 @@ class MainViewModel : ViewModel() {
                 val body = response.body()
                 if(response.isSuccessful && body != null) {
                     _listReview.value = body.customerReviews
+                    _snackBarText.value = body.message
                 } else {
                     Log.e(TAG, "onFailure: ${response.message()}")
                 }
