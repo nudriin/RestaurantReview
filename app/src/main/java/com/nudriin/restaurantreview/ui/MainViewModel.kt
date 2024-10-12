@@ -9,6 +9,7 @@ import com.nudriin.restaurantreview.data.response.PostReviewResponse
 import com.nudriin.restaurantreview.data.response.Restaurant
 import com.nudriin.restaurantreview.data.response.RestaurantResponse
 import com.nudriin.restaurantreview.data.retrofit.ApiConfig
+import com.nudriin.restaurantreview.utils.Event
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -26,8 +27,8 @@ class MainViewModel : ViewModel() {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _snackBarText = MutableLiveData<String>()
-    val snackBarText: LiveData<String> = _snackBarText
+    private val _snackBarText = MutableLiveData<Event<String>>()
+    val snackBarText: LiveData<Event<String>> = _snackBarText
 
     companion object {
         private const val TAG = "MainViewModel"
@@ -82,7 +83,7 @@ class MainViewModel : ViewModel() {
                 val body = response.body()
                 if(response.isSuccessful && body != null) {
                     _listReview.value = body.customerReviews
-                    _snackBarText.value = body.message
+                    _snackBarText.value = Event(body.message)
                 } else {
                     Log.e(TAG, "onFailure: ${response.message()}")
                 }
@@ -94,7 +95,4 @@ class MainViewModel : ViewModel() {
             }
         })
     }
-
-
-
 }
